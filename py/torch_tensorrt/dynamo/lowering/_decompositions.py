@@ -162,6 +162,44 @@ def var_decomposition(
     return variance
 
 
+@register_torch_trt_decomposition(
+    torch.ops.slice_scatter, registry=TORCH_TRT_DECOMPOSITIONS
+)
+def slice_scatter_decomposition(
+    input_tensor: torch.Tensor,
+    src_tensor: torch.Tensor,
+    dim: int,
+    start: Optional[int],
+    end: Optional[int],
+    step: int,
+):
+    dim_size = input_tensor.shape[dim]
+    input_tensor_shape = input_tensor.shape
+    if start is not None and start < 0:
+        start = start + dim_size
+    if end is not None and end < 0:
+        end = end + dim_size
+    if start is None:
+        start = 0
+    if end is None:
+        end = dim_size
+
+    src_dim = list(src_tensor.shape())
+    src_dim[dim] = torch.floor_divide(end - start, step)
+    src = torch.expand(src, src_dim)
+
+    if (start == 0 and end == dim_size and step == 0):
+        return input_tensor
+    mask = []
+    if start != 0:
+        mask.append(torch.ge(input_tensor_shape, start))
+    if end != dim_size:
+        mask.append(torch.ge(input_tensor_shape, end))
+    if step != 1:
+        mask.append(torch.eq(src_dim, 0))
+    src_val = torch.masked(mask, src_dim, 0)
+    return torch.where(mask, src_val,input_tensor)
+
 def get_decompositions(
     enable_experimental_decompositions: bool = False,
 ) -> Dict[OpOverload, Callable[[Any], Any]]:
