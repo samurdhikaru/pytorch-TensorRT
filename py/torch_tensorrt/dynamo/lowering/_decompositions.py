@@ -1,6 +1,7 @@
 import logging
 from typing import Any, Callable, Dict, List, Optional
 
+import numpy as np
 import torch
 from torch._decomp import register_decomposition
 from torch._ops import OpOverload
@@ -174,7 +175,7 @@ def slice_scatter_decomposition(
     step: int,
 ):
     dim_size = input_tensor.shape[dim]
-    input_tensor_shape = input_tensor.shape
+    # input_tensor_shape = input_tensor.shape
     if start is not None and start < 0:
         start = start + dim_size
     if end is not None and end < 0:
@@ -185,20 +186,22 @@ def slice_scatter_decomposition(
         end = dim_size
 
     src_dim = list(src_tensor.shape())
-    src_dim[dim] = torch.floor_divide(end - start, step)
-    src = torch.expand(src, src_dim)
+    step_dim = torch.floor_divide(end - start, step)
+    # src = torch.expand(src, src_dim)
+    end_dim = end
+    if step_dim > src_dim[dim]:
+        end_dim = src_dim[dim]
+    else:
+        src_tensor = src_tensor[0:step_dim]
 
-    if (start == 0 and end == dim_size and step == 0):
+    if start == 0 and end == dim_size and step == 0:
         return input_tensor
-    mask = []
-    if start != 0:
-        mask.append(torch.ge(input_tensor_shape, start))
-    if end != dim_size:
-        mask.append(torch.ge(input_tensor_shape, end))
-    if step != 1:
-        mask.append(torch.eq(src_dim, 0))
-    src_val = torch.masked(mask, src_dim, 0)
-    return torch.where(mask, src_val,input_tensor)
+    index_tensor = np.arange[start, end_dim, step]
+
+    unbind_tensors = torch.unbind(input_tensor, dim)
+    unbind_tensors[index_tensor] = src_tensor
+    return torch.cat(unbind_tensors, dim)
+
 
 def get_decompositions(
     enable_experimental_decompositions: bool = False,
