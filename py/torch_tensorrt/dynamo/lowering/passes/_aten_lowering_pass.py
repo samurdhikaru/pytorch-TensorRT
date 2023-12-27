@@ -8,6 +8,7 @@ from .fuse_prims_broadcast import fuse_prims_broadcast
 from .lower_linear import lower_linear
 from .lower_scaled_dot_product_attention import lower_scaled_dot_product_attention
 from .pass_manager import DynamoPassManager
+from .propagate_shapes import propagate_shapes
 from .remove_input_alias_fixing_clones import remove_input_alias_fixing_clones
 from .repair_input_as_output import repair_input_as_output
 from .replace_max_pool_with_indices import replace_max_pool_with_indices
@@ -23,6 +24,7 @@ ATEN_LOWERING_PASSES = DynamoPassManager.build_from_passlist(
         fuse_prims_broadcast,
         replace_max_pool_with_indices,
         view_to_reshape,
+        propagate_shapes,
     ]
 )
 
