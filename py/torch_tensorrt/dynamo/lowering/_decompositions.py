@@ -164,7 +164,7 @@ def var_decomposition(
 
 
 @register_torch_trt_decomposition(
-    torch.ops.slice_scatter, registry=TORCH_TRT_DECOMPOSITIONS
+    torch.ops.aten.slice_scatter.default, registry=TORCH_TRT_DECOMPOSITIONS
 )
 def slice_scatter_decomposition(
     input_tensor: torch.Tensor,
@@ -175,7 +175,6 @@ def slice_scatter_decomposition(
     step: int,
 ):
     dim_size = input_tensor.shape[dim]
-    # input_tensor_shape = input_tensor.shape
     if start is not None and start < 0:
         start = start + dim_size
     if end is not None and end < 0:
@@ -185,22 +184,29 @@ def slice_scatter_decomposition(
     if end is None:
         end = dim_size
 
-    src_dim = list(src_tensor.shape())
+    src_dim = src_tensor.shape
     step_dim = torch.floor_divide(end - start, step)
-    # src = torch.expand(src, src_dim)
     end_dim = end
     if step_dim > src_dim[dim]:
         end_dim = src_dim[dim]
     else:
-        src_tensor = src_tensor[0:step_dim]
+        indices = torch.Tensor(np.arange(0, step_dim))
+        indices = indices.to(torch.int32)
+        src = torch.index_select(src, dim, indices)
 
     if start == 0 and end == dim_size and step == 0:
         return input_tensor
-    index_tensor = np.arange[start, end_dim, step]
+    index_tensor = np.arange(start, end_dim, step)
 
-    unbind_tensors = torch.unbind(input_tensor, dim)
-    unbind_tensors[index_tensor] = src_tensor
-    return torch.cat(unbind_tensors, dim)
+    unbind_input_tensors = torch.unbind(input_tensor, dim)
+    unbind_input_tensors_list = list(unbind_input_tensors)
+    unbind_source_tensors = torch.unbind(src, dim)
+    unbind_source_tensors_list = list(unbind_source_tensors)
+
+    for i, index in enumerate(index_tensor):
+        unbind_input_tensors_list[index] = unbind_source_tensors_list[i]
+
+    return torch.stack(unbind_input_tensors_list, dim)
 
 
 def get_decompositions(
