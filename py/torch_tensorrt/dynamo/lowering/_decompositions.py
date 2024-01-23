@@ -5,9 +5,7 @@ import numpy as np
 import torch
 from torch._decomp import register_decomposition
 from torch._ops import OpOverload
-from torch_tensorrt.dynamo.conversion.converter_utils import (
-    get_positive_dim,
-)
+from torch_tensorrt.dynamo.conversion.converter_utils import get_positive_dim
 
 from ._decomposition_groups import (
     ENABLED_TORCH_DECOMPOSITIONS,
@@ -187,21 +185,22 @@ def slice_scatter_decomposition(
     if step_dim > src_dim[dim]:
         end_dim = src_dim[dim]
     else:
-        indices = torch.Tensor(torch.arange(0, step_dim))
+        indices = torch.arange(0, step_dim)
         indices = indices.to(torch.int32)
         src = torch.index_select(src, dim, indices)
 
     if start == 0 and end == dim_size and step == 0:
         return input_tensor
-    index_tensor = torch.arange(start, end_dim, step)
 
     unbind_input_tensors = torch.unbind(input_tensor, dim)
     unbind_input_tensors_list = list(unbind_input_tensors)
     unbind_source_tensors = torch.unbind(src, dim)
     unbind_source_tensors_list = list(unbind_source_tensors)
 
-    for i, index in enumerate(index_tensor):
+    i = 0
+    for index in range(start, end_dim, step):
         unbind_input_tensors_list[index] = unbind_source_tensors_list[i]
+        i = i + 1
 
     return torch.stack(unbind_input_tensors_list, dim)
 
