@@ -171,13 +171,17 @@ def slice_scatter_decomposition(
     input_tensor: torch.Tensor,
     src_tensor: torch.Tensor,
     dim: int,
-    start: Optional[int],
-    end: Optional[int],
-    step: int,
+    start: Optional[int] = None,
+    end: Optional[int] = None,
+    step: Optional[int] = None,
 ):
     dim_size = input_tensor.shape[dim]
-    start = get_positive_dim(start, input_tensor.shape)
-    end = get_positive_dim(end, input_tensor.shape)
+    start = get_positive_dim(start, input_tensor.shape[dim])
+    if end is None:
+        end = dim_size
+    end = get_positive_dim(end, input_tensor.shape[dim])
+    if step is None:
+        step = 1
 
     src_dim = src_tensor.shape
     step_dim = (end - start) // step
@@ -185,9 +189,9 @@ def slice_scatter_decomposition(
     if step_dim > src_dim[dim]:
         end_dim = src_dim[dim]
     else:
-        indices = torch.arange(0, step_dim)
+        indices = torch.Tensor(torch.arange(0, step_dim))
         indices = indices.to(torch.int32)
-        src = torch.index_select(src, dim, indices)
+        src = torch.index_select(src_tensor, dim, indices)
 
     if start == 0 and end == dim_size and step == 0:
         return input_tensor
@@ -201,8 +205,9 @@ def slice_scatter_decomposition(
     for index in range(start, end_dim, step):
         unbind_input_tensors_list[index] = unbind_source_tensors_list[i]
         i = i + 1
+    output_tensor = torch.stack(tuple(unbind_input_tensors_list), dim)
 
-    return torch.stack(unbind_input_tensors_list, dim)
+    return output_tensor
 
 
 def get_decompositions(

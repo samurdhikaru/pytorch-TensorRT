@@ -425,8 +425,8 @@ class TestLowering(TestCase):
             def __init__(self, *args, **kwargs) -> None:
                 super().__init__(*args, **kwargs)
 
-            def forward(self, x, src, dim, start=None, end=None, step=1):
-                y = self.slice_scatter(x, src, dim, start, end, step)
+            def forward(self, x, src, dim, start, end, step):
+                y = torch.ops.aten.slice_scatter.default(x, src, dim, start, end, step)
                 return y
 
         # Operations expected to be removed in the traced graph after decompositions
@@ -434,13 +434,13 @@ class TestLowering(TestCase):
             torch.ops.aten.slice.Tensor,
             torch.ops.aten.squeeze.dim,
             torch.ops.aten.cat.default,
-            torch.ops.aten.index.Tensor,
         }
-        unexpected_ops = {torch.ops.aten.select_scatter}
+        unexpected_ops = {torch.ops.aten.slice_scatter}
 
-        inputs = [torch.zeros(8, 8).cuda(), torch.ones(2, 8).cuda(), 0, 6]
+        inputs = [torch.zeros(8, 8).cuda(), torch.ones(2, 8).cuda(), 0, 6, None, 1]
 
         fx_graph = torch.fx.symbolic_trace(sliceScatter())
+
         unexpected_ops_seen, expected_ops_unseen = lower_graph_testing(
             fx_graph,
             inputs,
@@ -490,7 +490,7 @@ class TestLowering(TestCase):
                 super().__init__(*args, **kwargs)
 
             def forward(self, x, src, dim, start=None, end=None, step=1):
-                y = self.slice_scatter(x, src, dim, start, end, step)
+                y = torch.ops.aten.slice_scatter(x, src, dim, start, end, step)
                 return y
 
         # Operations expected to be removed in the traced graph after decompositions

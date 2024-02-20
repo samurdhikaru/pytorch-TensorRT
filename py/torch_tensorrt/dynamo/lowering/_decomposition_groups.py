@@ -174,6 +174,7 @@ torch_enabled_decompositions: Set[Union[OpOverload, OpOverloadPacket]] = {
     aten.full,
     aten.repeat,
     aten.var_mean,
+    aten.slice_scatter,
 }
 torch_disabled_decompositions: Set[Union[OpOverload, OpOverloadPacket]] = {
     aten._softmax.default,
