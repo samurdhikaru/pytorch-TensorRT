@@ -7,8 +7,8 @@ import numpy as np
 import tensorrt as trt
 import torch
 from torch import SymBool, SymFloat, SymInt
+from torch._subclasses.fake_tensor import FakeTensor
 from torch.fx.node import Argument, Target
-from torch.fx.passes.shape_prop import TensorMetadata
 from torch_tensorrt.dynamo._SourceIR import SourceIR
 from torch_tensorrt.dynamo.conversion._ConversionContext import ConversionContext
 from torch_tensorrt.dynamo.conversion._ConverterRegistry import (
@@ -54,15 +54,15 @@ def get_node_io(
     """Gets a string representing the node inputs and outputs including tensor shapes and dtypes"""
 
     def format_tensor_metadata(
-        metadata: Union[TensorMetadata, Sequence[TensorMetadata]]
+        metadata: Union[FakeTensor, Sequence[FakeTensor]]
     ) -> str:
         """Formats the metadata for a single node"""
         # If the provided data is a simple TensorMetadata object, parse it
-        if isinstance(metadata, TensorMetadata):
+        if isinstance(metadata, FakeTensor):
             return f"{tuple(metadata.shape)}@{metadata.dtype}"
         # If the provided data is a sequence, recursively parse it
         else:
-            formatted_str = "("
+            formatted_str = "Tuple("
             for meta in metadata:
                 formatted_str += format_tensor_metadata(meta) + ", "
 
@@ -77,8 +77,8 @@ def get_node_io(
             if arg.op == "get_attr":
                 shape, dtype = constant_mapping[str(arg)]
                 arg_repr = f"{shape}@{dtype}"
-            elif arg.meta.get("tensor_meta", False):
-                arg_repr = format_tensor_metadata(arg.meta["tensor_meta"])
+            elif "val" in arg.meta:
+                arg_repr = format_tensor_metadata(arg.meta["val"])
             else:
                 arg_repr = ""
 
@@ -95,8 +95,8 @@ def get_node_io(
     if node.op == "get_attr":
         shape, dtype = constant_mapping[str(node)]
         node_repr = f"{shape}@{dtype}"
-    elif node.meta.get("tensor_meta", False):
-        node_repr = format_tensor_metadata(node.meta["tensor_meta"])
+    elif "val" in node.meta:
+        node_repr = format_tensor_metadata(node.meta["val"])
     else:
         node_repr = ""
     metadata_string += f"{node}: {node_repr}, "
