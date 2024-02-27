@@ -189,6 +189,7 @@ def slice_scatter_decomposition(
     if step_dim > src_dim[dim]:
         end_dim = src_dim[dim]
     else:
+        # In this case src first step_dim need to be selected
         indices = torch.Tensor(torch.arange(0, step_dim))
         indices = indices.to(torch.int32)
         src = torch.index_select(src_tensor, dim, indices)
@@ -196,17 +197,8 @@ def slice_scatter_decomposition(
     if start == 0 and end == dim_size and step == 0:
         return input_tensor
 
-    unbind_input_tensors = torch.unbind(input_tensor, dim)
-    unbind_input_tensors_list = list(unbind_input_tensors)
-    unbind_source_tensors = torch.unbind(src, dim)
-    unbind_source_tensors_list = list(unbind_source_tensors)
-
-    i = 0
-    for index in range(start, end_dim, step):
-        unbind_input_tensors_list[index] = unbind_source_tensors_list[i]
-        i = i + 1
-    output_tensor = torch.stack(tuple(unbind_input_tensors_list), dim)
-
+    index_tensor = torch.arange(start, end, step_dim)
+    output_tensor = torch.scatter(input_tensor, dim, index_tensor, src)
     return output_tensor
 
 
