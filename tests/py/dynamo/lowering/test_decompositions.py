@@ -431,9 +431,8 @@ class TestLowering(TestCase):
 
         # Operations expected to be removed in the traced graph after decompositions
         expected_ops = {
-            torch.ops.aten.slice.Tensor,
-            torch.ops.aten.squeeze.dim,
-            torch.ops.aten.cat.default,
+            torch.ops.aten.index.Tensor,
+            torch.ops.aten.scatter.src,
         }
         unexpected_ops = {torch.ops.aten.slice_scatter}
 
@@ -469,6 +468,7 @@ class TestLowering(TestCase):
             "torch_compile",
             inputs,
             min_block_size=1,
+            truncate_long_and_double=True,
             pass_through_build_failures=True,
         )
         optimized_model_results = optimized_model(*inputs).detach().cpu()
@@ -495,14 +495,12 @@ class TestLowering(TestCase):
 
         # Operations expected to be removed in the traced graph after decompositions
         expected_ops = {
-            torch.ops.aten.slice.Tensor,
-            torch.ops.aten.squeeze.dim,
-            torch.ops.aten.cat.default,
             torch.ops.aten.index.Tensor,
+            torch.ops.aten.scatter.src,
         }
         unexpected_ops = {torch.ops.aten.select_scatter}
 
-        inputs = [torch.zeros(8, 8).cuda(), torch.ones(2, 8).cuda(), 0, 6]
+        inputs = [torch.zeros(8, 8).cuda(), torch.ones(8, 2).cuda(), 1, 6, None, 1]
 
         fx_graph = torch.fx.symbolic_trace(sliceScatter())
         unexpected_ops_seen, expected_ops_unseen = lower_graph_testing(
@@ -533,6 +531,7 @@ class TestLowering(TestCase):
             "torch_compile",
             inputs,
             min_block_size=1,
+            truncate_long_and_double=True,
             pass_through_build_failures=True,
         )
         optimized_model_results = optimized_model(*inputs).detach().cpu()

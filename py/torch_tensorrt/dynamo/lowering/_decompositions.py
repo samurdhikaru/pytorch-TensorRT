@@ -1,7 +1,6 @@
 import logging
 from typing import Any, Callable, Dict, List, Optional
 
-import numpy as np
 import torch
 from torch._decomp import register_decomposition
 from torch._ops import OpOverload
@@ -190,14 +189,21 @@ def slice_scatter_decomposition(
         end_dim = src_dim[dim]
     else:
         # In this case src first step_dim need to be selected
-        indices = torch.Tensor(torch.arange(0, step_dim))
-        indices = indices.to(torch.int32)
+        indices = torch.arange(0, step_dim)
         src = torch.index_select(src_tensor, dim, indices)
 
     if start == 0 and end == dim_size and step == 0:
         return input_tensor
 
-    index_tensor = torch.arange(start, end, step_dim)
+    cat_tensors = []
+    index_tensor_shape = []
+    for i, src_each_dim in enumerate(list(src_dim)):
+        if i != dim:
+            index_tensor_shape.append(src_each_dim)
+    for index in range(start, end, step):
+        cat_tensors.append(index * torch.ones(index_tensor_shape))
+    index_tensor = torch.stack(cat_tensors, dim)
+    index_tensor = index_tensor.to(torch.int64).cuda()
     output_tensor = torch.scatter(input_tensor, dim, index_tensor, src)
     return output_tensor
 
