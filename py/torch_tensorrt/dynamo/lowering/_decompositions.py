@@ -183,17 +183,11 @@ def slice_scatter_decomposition(
         step = 1
 
     src_dim = src_tensor.shape
-    step_dim = (end - start) // step
-    end_dim = end
-    if step_dim > src_dim[dim]:
-        end_dim = src_dim[dim]
-    else:
-        # In this case src first step_dim need to be selected
-        indices = torch.arange(0, step_dim)
-        src = torch.index_select(src_tensor, dim, indices)
+    # step == 0 is not a valid torch case
+    # also src_dim should be equal to slice dimension
 
-    if start == 0 and end == dim_size and step == 0:
-        return input_tensor
+    if start == 0 and end == dim_size and step == 1:
+        return src_tensor
 
     cat_tensors = []
     index_tensor_shape = []
