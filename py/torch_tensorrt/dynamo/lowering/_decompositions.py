@@ -194,11 +194,11 @@ def slice_scatter_decomposition(
     for i, src_each_dim in enumerate(list(src_dim)):
         if i != dim:
             index_tensor_shape.append(src_each_dim)
-    for index in range(start, end, step):
-        cat_tensors.append(index * torch.ones(index_tensor_shape))
+    indices = torch.arange(start, end, step)
+    cat_tensors = [(indices * torch.ones(index_tensor_shape))]
     index_tensor = torch.stack(cat_tensors, dim)
     index_tensor = index_tensor.to(torch.int64).cuda()
-    output_tensor = torch.scatter(input_tensor, dim, index_tensor, src)
+    output_tensor = torch.scatter(input_tensor, dim, index_tensor, src_tensor)
     return output_tensor
 
 
