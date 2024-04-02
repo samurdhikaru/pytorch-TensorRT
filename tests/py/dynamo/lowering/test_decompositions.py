@@ -609,5 +609,6 @@ class TestLowering(TestCase):
             f"Select_scatter TRT outputs don't match with the original model.",
         )
 
+
 if __name__ == "__main__":
     run_tests()
