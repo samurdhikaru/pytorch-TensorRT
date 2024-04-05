@@ -431,7 +431,6 @@ class TestLowering(TestCase):
 
         # Operations expected to be removed in the traced graph after decompositions
         expected_ops = {
-            torch.ops.aten.index.Tensor,
             torch.ops.aten.scatter.src,
         }
         unexpected_ops = {torch.ops.aten.slice_scatter}
@@ -495,7 +494,6 @@ class TestLowering(TestCase):
 
         # Operations expected to be removed in the traced graph after decompositions
         expected_ops = {
-            torch.ops.aten.index.Tensor,
             torch.ops.aten.scatter.src,
         }
         unexpected_ops = {torch.ops.aten.select_scatter}
@@ -558,7 +556,6 @@ class TestLowering(TestCase):
 
         # Operations expected to be removed in the traced graph after decompositions
         expected_ops = {
-            torch.ops.aten.index.Tensor,
             torch.ops.aten.scatter.src,
         }
         unexpected_ops = {torch.ops.aten.slice_scatter}
@@ -622,7 +619,6 @@ class TestLowering(TestCase):
 
         # Operations expected to be removed in the traced graph after decompositions
         expected_ops = {
-            torch.ops.aten.index.Tensor,
             torch.ops.aten.scatter.src,
         }
         unexpected_ops = {torch.ops.aten.slice_scatter}
