@@ -174,6 +174,21 @@ def empty_permuted_decomposition(*args, **kwargs) -> torch.Tensor:
     return torch.empty([empty_size[l] for l in empty_permute], **kwargs).permute(perm)
 
 
+@register_torch_trt_decomposition(
+    torch.ops.aten.scatter_add.default, registry=TORCH_TRT_DECOMPOSITIONS
+)
+def scatter_add_decomposition(
+    input_tensor: torch.Tensor,
+    src_tensor: torch.Tensor,
+    dim: int,
+    index: torch.Tensor,
+) -> torch.Tensor:
+    input_tensor_to_add = torch.empty_like(input_tensor)
+    input_tensor_to_add = torch.scatter(input_tensor_to_add, dim, index, src_tensor)
+    scatter_add_tensor = input_tensor + input_tensor_to_add
+    return scatter_add_tensor
+
+
 def get_decompositions(
     enable_experimental_decompositions: bool = False,
 ) -> Dict[OpOverload, Callable[[Any], Any]]:
