@@ -11,6 +11,7 @@ from torch_tensorrt.dynamo.conversion._ConverterRegistry import (
     dynamo_tensorrt_converter,
 )
 from torch_tensorrt.fx.types import TRTTensor
+from torch_tensorrt.fx.utils import Frameworks, unified_dtype_converter
 
 _LOGGER: logging.Logger = logging.getLogger(__name__)
 
@@ -47,3 +48,42 @@ def aten_ops_arange_start_step(
     name: str,
 ) -> Union[TRTTensor, Sequence[TRTTensor]]:
     return np.arange(*args)
+
+
+def empty_validator(empty_node: Node) -> bool:
+    layout = empty_node.kwargs.get("layout", None)
+    pin_memory = empty_node.kwargs.get("pin_memory", None)
+    memory_format = empty_node.kwargs.get("memory_format", None)
+    if layout is not None:
+        _LOGGER.debug(f"Currently we don't support specifying layout, got {layout}.")
+        return False
+    if pin_memory is not None:
+        _LOGGER.debug(
+            f"Currently we don't support specifying pin_memory, got {pin_memory}."
+        )
+        return False
+    if memory_format is not None:
+        _LOGGER.debug(
+            f"Currently we don't support specifying layout, got {memory_format}."
+        )
+        return False
+    return True
+
+
+@dynamo_tensorrt_converter(
+    torch.ops.aten.empty.memory_format, capability_validator=empty_validator
+)
+def aten_ops_empty(
+    ctx: ConversionContext,
+    target: Target,
+    args: Tuple[Argument, ...],
+    kwargs: Dict[str, Argument],
+    name: str,
+) -> Union[TRTTensor, Sequence[TRTTensor]]:
+    if kwargs.get("device") is not None:
+        return np.empty(*args[0], dtype=kwargs.get("dtype")).to(
+            device=kwargs.get("device")
+        )
+    return np.empty(
+        *args[0], dtype=unified_dtype_converter(kwargs.get("dtype"), Frameworks.NUMPY)
+    )
