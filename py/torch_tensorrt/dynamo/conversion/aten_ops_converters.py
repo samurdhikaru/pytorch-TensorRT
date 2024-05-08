@@ -2186,6 +2186,20 @@ def aten_ops_linear(
     )
 
 
+def zero_output_validator(node: Node) -> bool:
+    if 0 in node.args[1]:
+        _LOGGER.debug(
+            f"We do not support output tensor {node.args[1]} tensors with zero-sized dimensions for this operation."
+        )
+        return False
+    else:
+        return True
+
+
+@dynamo_tensorrt_converter(
+    torch.ops.aten.as_strided.default,
+    capability_validator=zero_output_validator,
+)
 @dynamo_tensorrt_converter(torch.ops.aten.as_strided.default)
 def aten_ops_as_strided(
     ctx: ConversionContext,
@@ -2202,7 +2216,7 @@ def aten_ops_as_strided(
         input=args[0],
         size=args[1],
         stride=args[2],
-        storage_offset=args_bounds_check(args, 3, 0),
+        storage_offset=args_bounds_check(args, 3, None),
     )
 
 
