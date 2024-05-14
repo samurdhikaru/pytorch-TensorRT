@@ -183,11 +183,9 @@ def scatter_add_decomposition(
     dim: int,
     index: torch.Tensor,
 ) -> torch.Tensor:
-    input_tensor_to_add = torch.empty_like(input_tensor)
-    input_tensor_to_add = torch.scatter(input_tensor_to_add, dim, index, src_tensor)
-    scatter_add_tensor = input_tensor + input_tensor_to_add
+    input_tensor_to_add = torch.scatter(torch.empty_like(input_tensor), dim, index, src_tensor)
+    scatter_add_tensor = torch.add(input_tensor, input_tensor_to_add.cuda())
     return scatter_add_tensor
-
 
 def get_decompositions(
     enable_experimental_decompositions: bool = False,
