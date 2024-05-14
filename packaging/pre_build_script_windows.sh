@@ -6,3 +6,5 @@ python -m pip install tensorrt==10.0.0b6 tensorrt-${CU_VERSION::4}-bindings==10.
 choco install bazelisk -y
 
 cat toolchains/ci_workspaces/WORKSPACE.win.release.tmpl | envsubst > WORKSPACE
+
+echo "RELEASE=1" >> ${GITHUB_ENV}
