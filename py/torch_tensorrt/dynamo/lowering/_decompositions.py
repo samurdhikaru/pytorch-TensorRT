@@ -183,9 +183,34 @@ def scatter_add_decomposition(
     dim: int,
     index: torch.Tensor,
 ) -> torch.Tensor:
-    input_tensor_to_add = torch.scatter(torch.empty_like(input_tensor), dim, index, src_tensor)
-    scatter_add_tensor = torch.add(input_tensor, input_tensor_to_add.cuda())
+    index_tensor_shape = index.shape
+    scatter_add_tensor = input_tensor
+    # check if there is index collision cases
+    if len(torch.unique(index, dim=dim)) == index_tensor_shape[dim]:
+        input_tensor_to_add = torch.scatter(
+            torch.empty_like(input_tensor), dim, index, src_tensor
+        )
+        scatter_add_tensor = torch.add(input_tensor, input_tensor_to_add.cuda())
+    else:
+        # index collision cases
+        index_copy = index
+        index_shape_squeezed = index_copy.squeeze(dim).shape
+        select_index_dim = index.shape[dim]
+        to_stack_dummy_index = tuple(
+            torch.empty_like(index_shape_squeezed) for _ in range(select_index_dim)
+        )
+        for index_index_dim in range(0, select_index_dim, 1):
+            select_tensor_dim = torch.select(index, dim, index)
+            to_stack_index = (
+                to_stack_dummy_index[:index_index_dim]
+                + (select_tensor_dim,)
+                + to_stack_dummy_index[index_index_dim + 1 :]
+            )
+            scatter_add_tensor = torch.scatter(
+                torch.empty_like(input_tensor), dim, to_stack_index, src_tensor
+            )
     return scatter_add_tensor
+
 
 def get_decompositions(
     enable_experimental_decompositions: bool = False,
